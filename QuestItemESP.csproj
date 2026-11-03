@@ -1,0 +1,81 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net471</TargetFramework>
+    <AssemblyName>QuestItemESP</AssemblyName>
+    <RootNamespace>QuestItemESP</RootNamespace>
+    <Version>2.1.0</Version>
+    <LangVersion>latest</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AssemblyTitle>QuestItemESP</AssemblyTitle>
+    <Description>Quest Item ESP</Description>
+    <GameDir Condition="'$(GameDir)' == ''">/mnt/nvmegames/Games/SPT-416</GameDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Die Symbole wandern IN die DLL. LogicalName setzt den Namen fest,
+       unter dem Symbole.cs sie wieder herausholt - ohne das leitet MSBuild
+       ihn aus dem Ordnerpfad ab und er aendert sich, sobald jemand die
+       Dateien verschiebt. Erzeugt werden die PNGs von
+       werkzeuge/symbole-bauen.sh aus den SVGs daneben. -->
+  <ItemGroup>
+    <EmbeddedResource Include="symbole/png/*.png">
+      <LogicalName>QuestItemESP.symbole.%(Filename).png</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Alles liegt schon im Spiel - nichts davon mitkopieren (Private=false). -->
+    <Reference Include="Assembly-CSharp" Publicize="true"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <!-- Fuer ParticleSystemRenderer: Partikel duerfen die Objektmitte nicht verziehen. -->
+    <!-- Fuer die Weltmarken: TextMeshPro zeichnet die Beschriftung in der Welt. -->
+    <Reference Include="UnityEngine.UI"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UIModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextCoreTextEngineModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.TextCoreTextEngineModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.TextMeshPro"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/Unity.TextMeshPro.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.ParticleSystemModule.dll</HintPath><Private>false</Private></Reference>
+    <!-- Fuer Texture2D.LoadImage: die Symbole werden als PNG eingebettet
+         und zur Laufzeit entpackt. -->
+    <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.ImageConversionModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Comfort"><HintPath>$(GameDir)/EscapeFromTarkov_Data/Managed/Comfort.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="BepInEx"><HintPath>$(GameDir)/BepInEx/core/BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(GameDir)/BepInEx/core/0Harmony.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+
+  <!-- Nach dem Bauen direkt ins Spiel kopieren.
+       ACHTUNG: nach BepInEx/plugins, NICHT nach scripts. Der Versuch mit
+       ScriptEngine (Live-Nachladen) ist gescheitert - es meldete den
+       Ladevorgang, erzeugte das Plugin aber nicht, und unter F12 tauchte
+       es nicht mehr auf. Siehe LIESMICH.
+
+       NUR AUF ZURUF: Ein Probebau soll nichts installieren. Kopiert wird
+       erst mit  dotnet build -p:Installieren=true  - so hat ein Bau zum
+       Nachsehen keine Nebenwirkung im Spielordner. -->
+  <Target Name="InsSpiel" AfterTargets="Build" Condition="'$(Installieren)' == 'true'">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(GameDir)/BepInEx/plugins"
+          Condition="Exists('$(GameDir)/BepInEx/plugins')" />
+    <Message Importance="high" Text="-> $(GameDir)/BepInEx/plugins/QuestItemESP.dll (Spiel neu starten)" />
+  </Target>
+
+  <Target Name="NichtInstalliert" AfterTargets="Build" Condition="'$(Installieren)' != 'true'">
+    <Message Importance="high" Text="Gebaut: $(TargetPath) - NICHT installiert (dafuer: -p:Installieren=true)" />
+  </Target>
+
+</Project>
